@@ -7,27 +7,29 @@ import java.io.IOException;
 public class SpectrogramAnalyser {
 
     private final int WINDOW_WIDTH = 128;
-    private final int STEP_SIZE = WINDOW_WIDTH / 2;
+    private final int STEP_SIZE = WINDOW_WIDTH / 4;
 
     private CNNConv3 network;
     private int[] markers;
+    private String[] labels;
 
     public SpectrogramAnalyser() throws IOException {
         network = new CNNConv3(128, 128);
         network.importFromDat("../birdsExportWithLabels.dat");
+        labels = network.getLabels();
     }
 
     public int[] analyseSpectrogram(double[][] spectrogram) {
         double[][] window = new double[spectrogram.length][WINDOW_WIDTH];
         int label;
-        markers = new int[(spectrogram[0].length / STEP_SIZE) - 1];
+        markers = new int[(spectrogram[0].length / STEP_SIZE) - (WINDOW_WIDTH / STEP_SIZE) + 1];
 
         for (int m = 0; m < markers.length; m++) {
             for (int y = 0; y < spectrogram.length; y++) {
                 System.arraycopy(spectrogram[y], m * STEP_SIZE, window[y], 0, WINDOW_WIDTH);
             }
 
-            label = analysePredictions(network.forward(spectrogram));
+            label = analysePredictions(network.forward(window));
             markers[m] = label;
         }
 
@@ -50,6 +52,18 @@ public class SpectrogramAnalyser {
             return idX;
         } else {
             return -1;
+        }
+    }
+
+    public int getStepSize() {
+        return STEP_SIZE;
+    }
+
+    public String getLabel(int labelVal) {
+        if (labelVal == -1) {
+            return "Noise";
+        } else {
+            return labels[labelVal];
         }
     }
 

@@ -1,99 +1,99 @@
 package io.github.birdsong.ui;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import io.github.birdsong.audio.SpectrogramAnalyser;
 import io.github.birdsong.audio.SpectrogramGenerator;
 import io.github.birdsong.audio.WavReader;
 
-import java.io.IOException;
-
 public class SpectrogramDisplay {
-    private int wid, hei, scale;
-    private int prevMouseX, spectrogramX;
-    private SpectrogramAnalyser sa;
-    private Pixmap spectrogramPix;
-    private Texture spectrogramTex;
-    private TextureRegion spectrogramDisp;
+    private double[][] spectrogram;
     private SpectrogramGenerator sg;
+    private Pixmap pixmap;
+    private Texture[] textures;
+    private TextureRegion textureRegion;
+    private int currentX = 0;
+    private int textureWidth;
+    private boolean loading = false;
+    private BitmapFont font;
 
-
-    public SpectrogramDisplay(int wid, int hei, int scale) throws IOException {
+    public SpectrogramDisplay() {
         sg = new SpectrogramGenerator();
-        prevMouseX = -1;
-        spectrogramX = 0;
-        this.wid = wid;
-        this.hei = hei;
-        this.scale = scale;
-        sa = new SpectrogramAnalyser();
+        font = new BitmapFont();
+        font.getData().setScale(2);
+        textureWidth = Gdx.graphics.getWidth() * 2;
     }
 
-    public void loadSpectrogram(String dir) {
-        WavReader wr = new WavReader(dir);
-        double[][] spectrogram = sg.generateSpectrogram(wr);
-        int[] markers = sa.analyseSpectrogram(spectrogram);
-        float val;
+    public void loadSpectrogram(String audioDir) {
+        if (loading) { return; }
+        loading = true;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                WavReader wr = new WavReader(audioDir);
+                spectrogram = sg.flipSpectrogram(sg.generateSpectrogram(wr));
 
-        spectrogramPix = new Pixmap(spectrogram[0].length * scale, spectrogram.length * scale, Pixmap.Format.RGBA8888);
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        createTextures();
+                    }
+                });
+            }
+        }).start();
+    }
 
-        for (int y = 0; y < spectrogram.length * scale; y++) {
-            for (int x = 0; x < spectrogram[0].length * scale; x++) {
-                val = (float) spectrogram[y / scale][x / scale];
-                if (markers[(x / scale) / 64] > - 1) {
-                    spectrogramPix.drawPixel(x, (hei * scale) - y - 1, Color.rgba8888(1, val, val, 1));
-                } else {
-                    spectrogramPix.drawPixel(x, (hei * scale) - y - 1, Color.rgba8888(val, val, val, 1));
+
+    private void createTextures() {
+        int spectrogramX;
+
+        Color colour;
+        float intensity;
+        textures = new Texture[(spectrogram[0].length / Gdx.graphics.getWidth()) - 1];
+
+        for (int i = 0; i < textures.length; i++) {
+            pixmap = new Pixmap(textureWidth, spectrogram.length, Pixmap.Format.RGB888);
+
+            for (int y = 0; y < spectrogram.length; y++) {
+                for (int x = 0; x < textureWidth; x++) {
+                    spectrogramX = i * (textureWidth / 2);
+                    if (spectrogramX + x >= spectrogram[0].length) {
+                        colour = new Color(0, 0, 0, 1);
+                    } else {
+                        intensity = (float) spectrogram[y][spectrogramX + x];
+                        colour = new Color(intensity, intensity, intensity, 1);
+                    }
+                    pixmap.setColor(colour);
+                    pixmap.drawPixel(x, y);
                 }
-
             }
+            textures[i] = new Texture(pixmap);
         }
 
-        spectrogramTex = new Texture(spectrogramPix);
-        spectrogramDisp = new TextureRegion(spectrogramTex, wid, hei * scale);
+        textureRegion = new TextureRegion(textures[0], Gdx.graphics.getWidth(), 128);
+        loading = false;
     }
 
-    public void updateRegion() {
-        if (spectrogramDisp == null) {
-            return;
-        }
-
-        if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
-            int currMouseX = Gdx.input.getX();
-
-            if (prevMouseX == -1) {
-                prevMouseX = currMouseX;
-            }
-
-            if (currMouseX != prevMouseX) {
-                spectrogramX += (prevMouseX - currMouseX);
-                prevMouseX = currMouseX;
-            }
+    public void draw(Batch batch) {
+        if (!loading) {
+            batch.draw(textureRegion, 0, Gdx.graphics.getHeight() - 128);
         } else {
-            prevMouseX = -1;
+            font.draw(batch, "LOADING...", Gdx.graphics.getWidth() / 2 - 50, Gdx.graphics.getHeight() - 64);
         }
-
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            spectrogramX -= 7 * scale;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            spectrogramX += 7 * scale;
-        }
-
-        if (spectrogramX > spectrogramTex.getWidth() - Gdx.graphics.getWidth()) {
-            spectrogramX = spectrogramTex.getWidth() - Gdx.graphics.getWidth();
-        }
-        if (spectrogramX < 0) {
-            spectrogramX = 0;
-        }
-
-        spectrogramDisp.setRegion(spectrogramX, 0, wid, hei * scale);
     }
 
-    public TextureRegion getSpectrogramDisp() {
-        return spectrogramDisp;
+    public void shiftRegion(int deltaX) {
+        if (!loading) {
+            currentX += deltaX;
+
+            currentX = Math.max(0, Math.min(currentX, spectrogram[0].length - textureRegion.getRegionWidth()));
+            textureRegion.setRegion(new TextureRegion(textures[currentX / (textureWidth / 2)]), currentX % (textureWidth / 2), 0, Gdx.graphics.getWidth(), textures[0].getHeight());
+        }
     }
+
+    public boolean isLoading() { return loading; }
 }
