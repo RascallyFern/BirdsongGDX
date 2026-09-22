@@ -19,6 +19,7 @@ public class SpectrogramDisplay {
     private int currentX = 0;
     private int textureWidth;
     private boolean loading = false;
+    private boolean error = false;
     private BitmapFont font;
 
     public SpectrogramDisplay() {
@@ -34,15 +35,22 @@ public class SpectrogramDisplay {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                WavReader wr = new WavReader(audioDir);
-                spectrogram = sg.flipSpectrogram(sg.generateSpectrogram(wr));
+                try {
+                    WavReader wr = new WavReader(audioDir);
+                    error = false;
+                    spectrogram = sg.flipSpectrogram(sg.generateSpectrogram(wr));
 
-                Gdx.app.postRunnable(new Runnable() {
-                    @Override
-                    public void run() {
-                        createTextures();
-                    }
-                });
+                    Gdx.app.postRunnable(new Runnable() {
+                        @Override
+                        public void run() {
+                            createTextures();
+                        }
+                    });
+                } catch (Exception e) {
+                    error = true;
+                    loading = false;
+                }
+
             }
         }).start();
     }
@@ -79,7 +87,9 @@ public class SpectrogramDisplay {
     }
 
     public void draw(Batch batch) {
-        if (!loading) {
+        if (error) {
+            font.draw(batch, "Error Loading Audio...", Gdx.graphics.getWidth() / 2 - 100, Gdx.graphics.getHeight() - 64);
+        } else if (!loading) {
             batch.draw(textureRegion, 0, Gdx.graphics.getHeight() - 128);
         } else {
             font.draw(batch, "LOADING...", Gdx.graphics.getWidth() / 2 - 50, Gdx.graphics.getHeight() - 64);
@@ -88,9 +98,11 @@ public class SpectrogramDisplay {
 
     public void shiftRegion(int deltaX) {
         if (!loading) {
+
             currentX += deltaX;
 
-            currentX = Math.max(0, Math.min(currentX, spectrogram[0].length - textureRegion.getRegionWidth()));
+            currentX = Math.max(0, Math.min(currentX, spectrogram[0].length - textureWidth));
+
             textureRegion.setRegion(new TextureRegion(textures[currentX / (textureWidth / 2)]), currentX % (textureWidth / 2), 0, Gdx.graphics.getWidth(), textures[0].getHeight());
         }
     }

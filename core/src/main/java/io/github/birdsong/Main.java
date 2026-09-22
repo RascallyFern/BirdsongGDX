@@ -4,16 +4,19 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.birdsong.audio.SpectrogramGenerator;
 import io.github.birdsong.audio.WavReader;
+import io.github.birdsong.ui.InputBox;
 import io.github.birdsong.ui.SpectrogramDisplay;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class Main extends ApplicationAdapter {
     private SpriteBatch batch;
     private SpectrogramDisplay sd;
-    private SpectrogramGenerator sg;
+    private InputBox ib;
     private int prevMouseX;
 
 
@@ -21,9 +24,7 @@ public class Main extends ApplicationAdapter {
     public void create() {
         batch = new SpriteBatch();
         sd = new SpectrogramDisplay();
-        sg = new SpectrogramGenerator();
-
-        sd.loadSpectrogram("../audio/Yellowhammer_21.wav");
+        sd.loadSpectrogram("../audio/BlueTit_5.wav");
         prevMouseX = -1;
     }
 
@@ -39,6 +40,10 @@ public class Main extends ApplicationAdapter {
     @Override
     public void dispose() {
         batch.dispose();
+
+        if (ib != null) {
+            ib.dispose();
+        }
     }
 
     public void manageInputs() {
@@ -47,6 +52,19 @@ public class Main extends ApplicationAdapter {
         }
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             sd.shiftRegion(8);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+            if (ib == null) {
+                ib = new InputBox();
+            }
+        }
+
+        if (ib != null) {
+            if (ib.getText() != null) {
+                sd.loadSpectrogram(ib.getText());
+                prevMouseX = -1;
+                ib = null;
+            }
         }
 
         if (Gdx.input.isTouched()) {
