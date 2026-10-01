@@ -156,4 +156,16 @@ public class SpectrogramGenerator {
     private double melToHz(double mel) {
         return 700 * (Math.pow(10, mel / 2595) - 1);
     }
+
+    public double[][] flipSpectrogram(double[][] in) {
+        double[][] temp = new double[in.length][in[0].length];
+
+        for (int y = 0; y < in.length; y++) {
+            for (int x = 0; x < in[0].length; x++) {
+                temp[in.length - y - 1][x] = in[y][x];
+            }
+        }
+
+        return temp;
+    }
 }

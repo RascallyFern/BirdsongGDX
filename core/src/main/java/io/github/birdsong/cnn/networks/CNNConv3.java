@@ -55,7 +55,7 @@ public class CNNConv3 {
     public double[] forward(double[][] input) {
         double[][][] x = new double[1][inY][inX];
 
-        x[0] = input;
+        x[0] = flipSpectrogram(input);
 
         x = c1.forwardPass(x);
         x = r1.forwardPass(x);
@@ -329,5 +329,21 @@ public class CNNConv3 {
         }
 
         return spectrogram;
+    }
+
+    private double[][] flipSpectrogram(double[][] spectrogram) {
+        double[][] temp = new double[spectrogram.length][spectrogram[0].length];
+
+        for (int y = 0; y < spectrogram.length; y++) {
+            for (int x = 0; x < spectrogram[0].length; x++) {
+                temp[temp.length - y - 1][x] = spectrogram[y][x];
+            }
+        }
+
+        return temp;
+    }
+
+    public String[] getLabels() {
+        return labels;
     }
 }
