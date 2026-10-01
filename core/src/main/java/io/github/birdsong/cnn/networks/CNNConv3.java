@@ -277,6 +277,13 @@ public class CNNConv3 {
         d1.importFromDat(dis);
         d2.importFromDat(dis);
 
+        int labelCount = dis.readInt();
+        labels = new String[labelCount];
+
+        for (int i = 0; i < labelCount; i++) {
+            labels[i] = dis.readUTF();
+        }
+
         dis.close();
     }
 
