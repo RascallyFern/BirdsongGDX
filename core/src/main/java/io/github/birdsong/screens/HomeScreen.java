@@ -39,8 +39,6 @@ public class HomeScreen implements Screen {
     private TextButton fileButton, playPauseButton;
     private TextField dirField;
     private Window filePopup;
-    private WavReader currReader;
-    private File currFile;
     private Label status, timeLabel;
     private Slider playbackSlider;
 
@@ -66,12 +64,13 @@ public class HomeScreen implements Screen {
 
         widget = new SpectrogramWidget();
         Table menuBar = createMenuBar();
+        menuBar.add(status).right().pad(12);
         Table controls = createPlaybackControls();
 
         root.add(menuBar).growX().left().top().row();
         root.add(widget).growX().height(200).left().top().row();
         root.add(controls).growX().pad(12).row();
-        root.add(status).left().pad(12).row();
+        //root.add(status).left().pad(12).row();
 
         stage.addActor(root);
     }
@@ -182,8 +181,6 @@ public class HomeScreen implements Screen {
                 SpectrogramGenerator sg = new SpectrogramGenerator();
                 double[][] spectogram = sg.generateSpectrogram(reader);
                 Gdx.app.postRunnable(() -> {
-                    currFile = file;
-                    currReader = reader;
                     widget.loadSpectrogram((spectogram));
                     status.setText(file.getName());
                 });

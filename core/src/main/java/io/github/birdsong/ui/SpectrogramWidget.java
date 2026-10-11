@@ -16,8 +16,8 @@ public class SpectrogramWidget extends Actor {
     private TextureRegion textureRegion;
     private Texture background;
     private Texture[] textures;
-    private double[][] spectrogram;
-    int prevMouseX, spectrogramX, textureWidth;
+    private double[][] spectrogram, paddedSpectrogram;
+    int prevMouseX, spectrogramX, textureWidth, realFrameCount;
     boolean heldDown, loading;
 
     private static final int HOP_SIZE = 512;
@@ -56,8 +56,7 @@ public class SpectrogramWidget extends Actor {
                 spectrogramX += (prevMouseX - currMouseX);
                 prevMouseX = currMouseX;
 
-                int visibleFrames = textureRegion.getRegionWidth();
-                int maxScroll = Math.max(0, spectrogram[0].length - visibleFrames);
+                int maxScroll = Math.max(0, realFrameCount - 1);
                 spectrogramX = Math.max(0, Math.min(spectrogramX, maxScroll));
 
                 updateTextureRegion();
@@ -81,12 +80,10 @@ public class SpectrogramWidget extends Actor {
             return;
         }
 
-        int visibleFrames = textureRegion.getRegionWidth();
-        int maxScroll = Math.max(0, spectrogram[0].length - visibleFrames);
+        int maxScroll = Math.max(0, realFrameCount - 1);
         int targetFrame = (int) (Math.max(0, secs) * SAMPLE_RATE / HOP_SIZE);
 
         spectrogramX = Math.min(targetFrame, maxScroll);
-
         updateTextureRegion();
     }
 
@@ -95,14 +92,10 @@ public class SpectrogramWidget extends Actor {
             return;
         }
 
-        int chunkStep = textureWidth / 2;
-
-        if (chunkStep <= 0) {
-            return;
-        }
-
+        int chunkStep = Math.max(1, textureWidth / 2);
         int chunkIdx = spectrogramX / chunkStep;
         int offsetInChunk = spectrogramX % chunkStep;
+        chunkIdx = Math.min(chunkIdx, textures.length - 1);
 
         if (chunkIdx >= textures.length) {
             chunkIdx = textures.length - 1;
@@ -110,9 +103,7 @@ public class SpectrogramWidget extends Actor {
         }
 
         Texture texture = textures[chunkIdx];
-        int availableWidth = texture.getWidth() - offsetInChunk;
-        int visibleWidth = Math.min(Gdx.graphics.getWidth(), availableWidth);
-
+        int visibleWidth = Gdx.graphics.getWidth();
         if (visibleWidth <= 0) {
             return;
         }
@@ -143,26 +134,22 @@ public class SpectrogramWidget extends Actor {
     }
 
     public void loadSpectrogram(double[][] spectrogram) {
+        if (spectrogram == null || spectrogram.length == 0 || spectrogram[0] == null || spectrogram[0].length == 0) {
+            return;
+        }
+
         this.spectrogram = spectrogram;
+        loading = true;
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Gdx.app.postRunnable(new Runnable() {
-                        @Override
-                        public void run() {
-                            loading = true;
-                            createTextures();
-                            loading = false;
-                        }
-                    });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
+        Gdx.app.postRunnable(() -> {
+            try {
+                createTextures();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                loading = false;
             }
-        }).start();
+        });
     }
 
     private void createTextures() {
@@ -170,8 +157,17 @@ public class SpectrogramWidget extends Actor {
             return;
         }
 
-        int frameCount = spectrogram[0].length;
+        int realFrameCount = spectrogram[0].length;
+        this.realFrameCount = realFrameCount;
+        int paddingFrames = Gdx.graphics.getWidth();
+        int totalFrames = realFrameCount + paddingFrames;
         int chunkStep = Math.max(1, textureWidth / 2);
+
+        double[][] paddedSpectrogram = new double[spectrogram.length][totalFrames];
+
+        for (int y = 0; y < spectrogram.length; y++) {
+            System.arraycopy(spectrogram[y], 0, paddedSpectrogram[y], 0, realFrameCount);
+        }
 
         if (textures != null) {
             for (Texture texture : textures) {
@@ -181,22 +177,20 @@ public class SpectrogramWidget extends Actor {
             }
         }
 
-        int chunkCount = Math.max(1, (frameCount + chunkStep - 1) / chunkStep);
+        int chunkCount = Math.max(1, (int) Math.ceil((totalFrames - textureWidth) / (double) chunkStep) + 1);
         textures = new Texture[chunkCount];
 
         for (int i = 0; i < chunkCount; i++) {
             int startFrame = i * chunkStep;
-            int width = Math.min(textureWidth, frameCount - startFrame);
-
+            int width = Math.min(textureWidth, totalFrames - startFrame);
             Pixmap pixmap = new Pixmap(width, spectrogram.length, Pixmap.Format.RGB888);
 
             for (int y = 0; y < spectrogram.length; y++) {
                 for (int x = 0; x < width; x++) {
-                    float intensity = (float) spectrogram[y][startFrame + x];
+                    float intensity = (float) paddedSpectrogram[y][startFrame + x];
                     intensity = Math.max(0f, Math.min(1f, intensity));
-
                     pixmap.setColor(intensity, intensity, intensity, 1);
-                    pixmap.drawPixel(x, spectrogram.length - 1 - y);
+                    pixmap.drawPixel(x, paddedSpectrogram.length - 1 - y);
                 }
             }
 
