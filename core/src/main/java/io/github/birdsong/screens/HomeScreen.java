@@ -12,21 +12,21 @@ import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.utils.Layout;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import io.github.birdsong.BirdsongApp;
+import io.github.birdsong.analysis.AnalysisController;
 import io.github.birdsong.audio.AudioPlayer;
 import io.github.birdsong.audio.SpectrogramGenerator;
 import io.github.birdsong.audio.WavReader;
+import io.github.birdsong.cnn.networks.CNNConv3;
 import io.github.birdsong.ui.BirdsongSkin;
 import io.github.birdsong.ui.SpectrogramWidget;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 
 public class HomeScreen implements Screen {
 
@@ -34,27 +34,37 @@ public class HomeScreen implements Screen {
     private AudioPlayer player;
     private Stage stage;
     private Skin skin;
-    private SpectrogramGenerator sg;
     private SpectrogramWidget widget;
     private TextButton fileButton, playPauseButton;
     private TextField dirField;
     private Window filePopup;
     private Label status, timeLabel;
     private Slider playbackSlider;
+    private AnalysisController analyser;
+    private CNNConv3 network;
 
     public HomeScreen(BirdsongApp app) {
         this.app = app;
         stage = new Stage(new ScreenViewport());
         skin = new BirdsongSkin();
-        sg = new SpectrogramGenerator();
         player = new AudioPlayer();
+        network = new CNNConv3(128, 128);
 
         status = new Label("No recording loaded", skin);
         dirField = new TextField("", skin);
 
         buildUI();
+        initialiseNetwork();
 
         Gdx.input.setInputProcessor(stage);
+    }
+
+    private void initialiseNetwork() {
+        try {
+            network.importFromDat("../assets/birdsExportWithLabels.dat");
+        } catch (IOException e) {
+            System.err.println("Could not initialise network: " + e);
+        }
     }
 
     private void buildUI() {
@@ -64,13 +74,11 @@ public class HomeScreen implements Screen {
 
         widget = new SpectrogramWidget();
         Table menuBar = createMenuBar();
-        menuBar.add(status).right().pad(12);
         Table controls = createPlaybackControls();
 
         root.add(menuBar).growX().left().top().row();
-        root.add(widget).growX().height(200).left().top().row();
+        root.add(widget).growX().height(300).left().top().row();
         root.add(controls).growX().pad(12).row();
-        //root.add(status).left().pad(12).row();
 
         stage.addActor(root);
     }
@@ -86,13 +94,38 @@ public class HomeScreen implements Screen {
         TextButton analysisButton = new TextButton("Analyse", skin);
         menuBar.background(new TextureRegionDrawable(new TextureRegion(createSolidColour(new Color(0.1f, 0.1f, 0.1f, 1f)))));
 
+        menuBar.add(analysisButton).padRight(8);
         menuBar.add(fileButton).padRight(8);
-        menuBar.add(analysisButton);
+        menuBar.add().expandX();
+        menuBar.add(status).right().padRight(12);
 
         fileButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 showFileMenu(fileButton);
+            }
+        });
+
+        analysisButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (network == null) {
+                    return;
+                }
+                if (analyser == null) {
+                    analyser = new AnalysisController(network);
+                }
+                if (new File(dirField.getText()).isFile()) {
+                    Thread thread = new Thread(() -> {
+                        Gdx.app.postRunnable(() -> {
+                            analyser.loadFile(dirField.getText());
+                            analyser.analyse();
+                        });
+                    });
+
+                    thread.setDaemon(true);
+                    thread.start();
+                }
             }
         });
 

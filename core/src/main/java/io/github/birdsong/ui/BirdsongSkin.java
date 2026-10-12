@@ -15,7 +15,6 @@ public class BirdsongSkin extends Skin {
     public BirdsongSkin() {
         BitmapFont font = new BitmapFont();
         add("default-font", font);
-
         buttonTexture = new Texture(Gdx.files.internal("birdsong.png"));
 
         TextureRegion buttonUp = new TextureRegion(buttonTexture, 0, 0, 100, 50);

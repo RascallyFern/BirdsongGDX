@@ -149,6 +149,24 @@ public class SpectrogramGenerator {
         return songs;
     }
 
+    public double[][][] splitIntoSnippets(double[][] spectrogram, double stepFactor) {
+        int windowLength = 128;
+        int windowStep = (int) (windowLength * stepFactor);
+        int frames = (spectrogram[0].length - windowLength) / windowStep + 1;
+
+        double[][][] snippets = new double[frames][spectrogram.length][windowLength];
+
+        for (int f = 0; f < frames; f++) {
+            double[][] window = new double[spectrogram.length][windowLength];
+            for (int y = 0; y < spectrogram.length; y++) {
+                System.arraycopy(spectrogram[y], f * windowStep, window[y], 0, windowLength);
+            }
+            snippets[f] = window;
+        }
+
+        return snippets;
+    }
+
     private double hzToMel(double hz) {
         return 2595 * Math.log10(1 + hz / 700);
     }
