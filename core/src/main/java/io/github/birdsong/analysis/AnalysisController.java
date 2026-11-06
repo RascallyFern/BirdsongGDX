@@ -9,6 +9,7 @@ import io.github.birdsong.cnn.networks.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class AnalysisController {
     private WavReader wavReader;
@@ -38,67 +39,54 @@ public class AnalysisController {
             wavReader = new WavReader(dir);
             spectrogram = spectrogramGenerator.generateSpectrogram(wavReader);
             analysed = false;
+            detections = new ArrayList<Detection>();
         } else if (!currDir.equals(dir)){
             wavReader = new WavReader(dir);
             spectrogram = spectrogramGenerator.generateSpectrogram(wavReader);
             analysed = false;
+            detections = new ArrayList<Detection>();
         } else {
             System.out.println("This directory has already been loaded.");
         }
     }
 
-    public void analyse(Table container, final Runnable onClick) {
-        if (!analysed) {
-            analysed = true;
-        } else {
+    public void analyse(Consumer<List<Detection>> onComplete) {
+        if (analysed || spectrogram == null) {
             return;
         }
 
-        double stepFactor = 0.5;
-        double windowLength = stepFactor * 128 * 1000000 * (double) HOP_SIZE / (double) SAMPLE_RATE;
+        analysed = true;
 
         executor.submit(new AsyncTask<Void>() {
             @Override
             public Void call() throws Exception {
-                double[] predictions;
-                double confidence;
-                String label;
-                double windowStartPos;
-                double[][][] snippets = spectrogramGenerator.splitIntoSnippets(spectrogram, stepFactor);
+                double stepFactor = 0.5;
+
+                double windowLength = stepFactor * 128 * 1000000 * (double) HOP_SIZE / (double) SAMPLE_RATE;
 
                 List<Detection> localDetections = new ArrayList<>();
+                double[][][] snippets = spectrogramGenerator.splitIntoSnippets(spectrogram, stepFactor);
 
-                int i = 0;
-                for (double[][] window : snippets) {
-                    predictions = network.forward(window);
-                    confidence = predictions[network.mostConfidence(predictions)];
+                for (int i = 0; i < snippets.length; i++) {
+                    double[] predictions = network.forward(snippets[i]);
+                    int bestIdx = network.mostConfidence(predictions);
+                    double confidence = predictions[bestIdx];
+                    String label = network.getLabels()[bestIdx];
 
-                    label = network.getLabels()[network.mostConfidence(predictions)];
-                    if (!label.equals("Noise")) {
-                        if (confidence > 0.99) {
-                            windowStartPos = windowLength * i;
-                            localDetections.add(new Detection(label, confidence, windowStartPos, windowStartPos + windowLength));
-                        }
+                    if (!label.equals("Noise") && confidence > 0.99) {
+                        double start = windowLength * i;
+
+                        localDetections.add(new Detection(label, confidence, start, start + windowLength));
                     }
-
-                    i++;
                 }
 
-                Gdx.app.postRunnable(new Runnable() {
-                    @Override
-                    public void run() {
-                        detections = localDetections;
+                Gdx.app.postRunnable(() -> {
+                    detections = localDetections;
 
-                        smoothDetections();
-                        detections = groupDetections();
+                    smoothDetections();
+                    detections = groupDetections();
 
-                        for (Detection d : detections) {
-                            System.out.println(d);
-                            container.add(new DetectionCard(d, onClick)).left().row();
-                        }
-
-                        analysed = true;
-                    }
+                    onComplete.accept(new ArrayList<>(detections));
                 });
 
                 return null;

@@ -30,9 +30,10 @@ public class SpectrogramWidget extends Actor {
         textureWidth = Gdx.graphics.getWidth() * 2;
 
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGB888);
-        pixmap.setColor(0.20f, 0.20f, 0.20f, 1f);
+        pixmap.setColor(BirdsongSkin.PANEL);
         pixmap.fill();
         background = new Texture(pixmap);
+        pixmap.dispose();
 
         heldDown = false;
         addListener( new InputListener() {
@@ -202,5 +203,28 @@ public class SpectrogramWidget extends Actor {
 
         int visibleWidth = Math.min(Gdx.graphics.getWidth(), textures[0].getWidth());
         textureRegion = new TextureRegion(textures[0], 0, 0, visibleWidth, textures[0].getHeight());
+    }
+
+    public void dispose() {
+        if (background != null) {
+            background.dispose();
+        }
+
+        if (textures != null) {
+            for (Texture texture : textures) {
+                texture.dispose();
+            }
+        }
+    }
+
+    public Texture createSolidTexture(int width, int height, Color colour) {
+        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+        pixmap.setColor(colour);
+        pixmap.fill();
+
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+
+        return texture;
     }
 }

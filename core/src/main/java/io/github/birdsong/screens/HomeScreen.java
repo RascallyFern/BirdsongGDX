@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import io.github.birdsong.BirdsongApp;
 import io.github.birdsong.analysis.AnalysisController;
@@ -29,6 +30,8 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class HomeScreen implements Screen {
 
@@ -44,8 +47,13 @@ public class HomeScreen implements Screen {
     private Slider playbackSlider;
     private AnalysisController analyser;
     private CNNConv3 network;
+
     private ScrollPane detectionsList;
-    private Table detectionsContainer;
+    private Table detectionsContainer, detectionsInfo;
+    private Label selectedSpecies, selectedConfidence, selectedStart, selectedEnd, selectedDur;
+    private Detection selectedDetection;
+    private Texture panelTexture;
+    private TextureRegionDrawable panelBackground;
 
     public HomeScreen(BirdsongApp app) {
         this.app = app;
@@ -84,7 +92,7 @@ public class HomeScreen implements Screen {
         root.add(menuBar).growX().left().top().row();
         root.add(widget).growX().height(300).left().top().row();
         root.add(controls).growX().pad(12).row();
-        root.add(detections).growX();
+        root.add(detections).grow();
         stage.addActor(root);
     }
 
@@ -97,10 +105,10 @@ public class HomeScreen implements Screen {
         fileButton = new TextButton("Upload", skin);
 
         TextButton analysisButton = new TextButton("Analyse", skin);
-        menuBar.background(new TextureRegionDrawable(new TextureRegion(createSolidColour(new Color(0.1f, 0.1f, 0.1f, 1f)))));
+        menuBar.background(skin.getDrawable("menu-background"));
 
-        menuBar.add(analysisButton).padRight(8);
-        menuBar.add(fileButton).padRight(8);
+        menuBar.add(analysisButton).padRight(8).height(48).width(120);
+        menuBar.add(fileButton).padRight(8).height(48).width(120);
         menuBar.add().expandX();
         menuBar.add(status).right().padRight(12);
 
@@ -114,25 +122,33 @@ public class HomeScreen implements Screen {
         analysisButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if (network == null) {
+                String path = dirField.getText().trim();
+
+                if (path.isBlank() || !new File(path).isFile()) {
+                    status.setText("Please load a recording first");
                     return;
                 }
+
                 if (analyser == null) {
                     analyser = new AnalysisController(network);
                 }
-                if (new File(dirField.getText()).isFile()) {
-                    Thread thread = new Thread(() -> {
-                        Gdx.app.postRunnable(() -> {
-                            analyser.loadFile(dirField.getText());
-                            analyser.analyse(detectionsContainer, () -> {
-                                System.out.println("Clicked");
-                            });
+
+                status.setText("Analysing...");
+
+                Thread thread = new Thread(() -> {
+
+                    analyser.loadFile(path);
+
+                    Gdx.app.postRunnable(() -> {
+                        analyser.analyse(detections -> {
+                            displayDetections(detections);
+                            status.setText(path.substring(path.lastIndexOf("\\") + 1, path.length()));
                         });
                     });
+                });
 
-                    thread.setDaemon(true);
-                    thread.start();
-                }
+                thread.setDaemon(true);
+                thread.start();
             }
         });
 
@@ -140,20 +156,61 @@ public class HomeScreen implements Screen {
     }
 
     private Table createDetectionsUI() {
-        Table detectionPanel = new Table();
+        Table panel = new Table();
         Table left = new Table();
         Table right = new Table();
 
-        left.defaults().left();
+        panelTexture = createSolidColour(BirdsongSkin.PANEL);
+        panelBackground = new TextureRegionDrawable(new TextureRegion(panelTexture));
+
+        left.setBackground(panelBackground);
+        left.pad(16);
+        left.top();
+
+        Label detectionHeading = new Label("Detections", skin);
 
         detectionsContainer = new Table();
+        detectionsContainer.top().left();
+        detectionsContainer.defaults().growX().padBottom(8);
+
         detectionsList = new ScrollPane(detectionsContainer, skin);
-        left.add(detectionsList).growX().left();
+        detectionsList.setScrollingDisabled(true, false);
+        detectionsList.setFadeScrollBars(false);
 
-        detectionPanel.add(left).growX().left().pad(60);
-        detectionPanel.add(right).growX();
+        left.add(detectionHeading).left().pad(12).row();
+        left.add(detectionsList).grow().minWidth(0);
 
-        return detectionPanel;
+        right.setBackground(panelBackground);
+        right.pad(24);
+        right.top().left();
+
+        Label infoHeading = new Label("Detection Details", skin);
+
+        Table detailsBox = new Table();
+        detailsBox.setBackground(skin.getDrawable("detection-card"));
+        detailsBox.pad(16);
+        detailsBox.top().left();
+
+        selectedSpecies = new Label("No detection selected", skin);
+        selectedConfidence = new Label("Confidence: --", skin);
+        selectedStart = new Label("Start: --", skin);
+        selectedEnd = new Label("End: --", skin);
+        selectedDur = new Label("Duration: --", skin);
+
+        detailsBox.add(selectedSpecies).left().pad(6, 16, 16, 16).row();
+        detailsBox.add(selectedConfidence).left().pad(16).row();
+        detailsBox.add(selectedStart).left().pad(16).row();
+        detailsBox.add(selectedEnd).left().pad(16).row();
+        detailsBox.add(selectedDur).left().pad(16).row();
+
+        right.add(infoHeading).left().growX().padBottom(12).row();
+        right.add(detailsBox).left().growX().top();
+
+        panel.add(left).width(Value.percentWidth(0.6f, panel)).growY().padRight(12);
+        panel.add(right).grow().minWidth(0).growY().left().top();
+
+        return panel;
+
     }
 
     private Table createPlaybackControls() {
@@ -162,7 +219,7 @@ public class HomeScreen implements Screen {
         timeLabel = new Label("00:00 / 00:00", skin);
         playbackSlider = new Slider(0, 1, 0.001f, false, skin, "default-horizontal");
 
-        controls.add(playPauseButton).width(90).padRight(12);
+        controls.add(playPauseButton).width(90).padRight(12).height(48);
         controls.add(timeLabel).padRight(12);
         controls.add(playbackSlider).growX();
 
@@ -282,9 +339,9 @@ public class HomeScreen implements Screen {
         TextButton loadButton = new TextButton("Load", skin);
 
         Table inputRow = new Table();
-        inputRow.add(browseButton).growX().pad(10);
-        inputRow.add(loadButton).growX().pad(10).row();
-        filePopup.add(dirField).growX().height(40).width(400).pad(20, 16, 2, 16).row();
+        inputRow.add(browseButton).growX().pad(10).height(48).width(120);
+        inputRow.add(loadButton).growX().pad(10).height(48).width(120).row();
+        filePopup.add(dirField).growX().height(40).width(250).pad(20, 16, 2, 16).row();
         filePopup.add(inputRow).growX().pad(6).row();
 
 
@@ -318,6 +375,39 @@ public class HomeScreen implements Screen {
         });
     }
 
+    private void displayDetections(List<Detection> detections) {
+        detectionsContainer.clearChildren();
+        selectedDetection = null;
+
+        selectedSpecies.setText("No detection selected");
+        selectedConfidence.setText("Confidence: --");
+        selectedStart.setText("Start: --");
+        selectedEnd.setText("End: --");
+        selectedDur.setText("Duration: --");
+
+        for (Detection detection : detections) {
+            DetectionCard card = new DetectionCard(detection, skin, () -> selectDetection(detection));
+            detectionsContainer.add(card).growX().row();
+        }
+
+        detectionsContainer.invalidateHierarchy();
+        detectionsList.layout();
+    }
+
+    private void selectDetection(Detection detection) {
+        selectedDetection = detection;
+
+        long startTime = (long) detection.getStartTime();
+        player.setPosMicros(startTime);
+        widget.setTime(startTime / 1000000f);
+
+        selectedSpecies.setText(detection.getSpecies());
+        selectedConfidence.setText(String.format("Confidence: %.2f%%", detection.getConfidence() * 100));
+        selectedStart.setText("Start: " + formatDetectionTime(detection.getStartTime()));
+        selectedEnd.setText("End: " + formatDetectionTime(detection.getEndTime()));
+        selectedDur.setText("Duration: " + formatDetectionTime(detection.getDuration()));
+    }
+
     public Texture createSolidColour(Color colour) {
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(colour);
@@ -332,6 +422,14 @@ public class HomeScreen implements Screen {
     private String formatTime(long micros) {
         long secs = micros / 1000000;
         return String.format("%02d:%02d", secs / 60, secs % 60);
+    }
+
+    private String formatDetectionTime(double micros) {
+        double secs = micros / 1000000f;
+        int mins = (int) (secs / 60);
+        double remaining = secs % 60;
+
+        return String.format("%02d:%05.2f", mins, remaining);
     }
 
     @Override
@@ -357,6 +455,11 @@ public class HomeScreen implements Screen {
     public void dispose() {
         stage.dispose();
         skin.dispose();
+        widget.dispose();
+
+        if (panelTexture != null) {
+            panelTexture.dispose();
+        }
     }
 
     @Override public void pause() {}

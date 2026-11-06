@@ -4,6 +4,7 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.birdsong.screens.HomeScreen;
+import io.github.birdsong.ui.BirdsongSkin;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class BirdsongApp extends Game {
@@ -14,7 +15,7 @@ public class BirdsongApp extends Game {
 
     @Override
     public void render() {
-        ScreenUtils.clear(0.15f, 0.15f, 0.15f, 1f);
+        ScreenUtils.clear(BirdsongSkin.BACKGROUND);
         super.render();
     }
 
