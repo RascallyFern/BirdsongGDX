@@ -16,6 +16,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import io.github.birdsong.BirdsongApp;
 import io.github.birdsong.analysis.AnalysisController;
+import io.github.birdsong.analysis.Detection;
+import io.github.birdsong.analysis.DetectionCard;
 import io.github.birdsong.audio.AudioPlayer;
 import io.github.birdsong.audio.SpectrogramGenerator;
 import io.github.birdsong.audio.WavReader;
@@ -42,6 +44,8 @@ public class HomeScreen implements Screen {
     private Slider playbackSlider;
     private AnalysisController analyser;
     private CNNConv3 network;
+    private ScrollPane detectionsList;
+    private Table detectionsContainer;
 
     public HomeScreen(BirdsongApp app) {
         this.app = app;
@@ -75,11 +79,12 @@ public class HomeScreen implements Screen {
         widget = new SpectrogramWidget();
         Table menuBar = createMenuBar();
         Table controls = createPlaybackControls();
+        Table detections = createDetectionsUI();
 
         root.add(menuBar).growX().left().top().row();
         root.add(widget).growX().height(300).left().top().row();
         root.add(controls).growX().pad(12).row();
-
+        root.add(detections).growX();
         stage.addActor(root);
     }
 
@@ -119,7 +124,9 @@ public class HomeScreen implements Screen {
                     Thread thread = new Thread(() -> {
                         Gdx.app.postRunnable(() -> {
                             analyser.loadFile(dirField.getText());
-                            analyser.analyse();
+                            analyser.analyse(detectionsContainer, () -> {
+                                System.out.println("Clicked");
+                            });
                         });
                     });
 
@@ -130,6 +137,23 @@ public class HomeScreen implements Screen {
         });
 
         return menuBar;
+    }
+
+    private Table createDetectionsUI() {
+        Table detectionPanel = new Table();
+        Table left = new Table();
+        Table right = new Table();
+
+        left.defaults().left();
+
+        detectionsContainer = new Table();
+        detectionsList = new ScrollPane(detectionsContainer, skin);
+        left.add(detectionsList).growX().left();
+
+        detectionPanel.add(left).growX().left().pad(60);
+        detectionPanel.add(right).growX();
+
+        return detectionPanel;
     }
 
     private Table createPlaybackControls() {
@@ -146,7 +170,6 @@ public class HomeScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 player.togglePlayback();
-
                 playPauseButton.setText(player.isPlaying() ? "Pause" : "Play");
             }
         });
@@ -261,7 +284,7 @@ public class HomeScreen implements Screen {
         Table inputRow = new Table();
         inputRow.add(browseButton).growX().pad(10);
         inputRow.add(loadButton).growX().pad(10).row();
-        filePopup.add(dirField).growX().height(40).pad(20, 8, 2, 8).row();
+        filePopup.add(dirField).growX().height(40).width(400).pad(20, 16, 2, 16).row();
         filePopup.add(inputRow).growX().pad(6).row();
 
 

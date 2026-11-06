@@ -81,8 +81,16 @@ public class BirdsongSkin extends Skin {
         sliderStyle.background = trackDrawable;
         sliderStyle.knob = knobDrawable;
         sliderStyle.knobDown = knobSelectedDrawable;
-
         add("default-horizontal", sliderStyle);
+
+        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
+        scrollPaneStyle.background = trackDrawable;
+        scrollPaneStyle.hScroll = trackDrawable;
+        scrollPaneStyle.vScroll = trackDrawable;
+        scrollPaneStyle.hScrollKnob = trackDrawable;
+        scrollPaneStyle.vScrollKnob = trackDrawable;
+        add("default", scrollPaneStyle);
+
     }
 
     public Texture createSolidColour(Color colour) {

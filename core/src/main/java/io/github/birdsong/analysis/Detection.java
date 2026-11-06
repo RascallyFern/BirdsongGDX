@@ -1,9 +1,9 @@
 package io.github.birdsong.analysis;
 
 public class Detection {
-    private final String species;
-    private final double confidence;
-    private final double startTime;
+    private String species;
+    private double confidence;
+    private double startTime;
     private double endTime;
 
     public Detection(String species, double confidence, double startTime, double endTime) {
@@ -37,7 +37,19 @@ public class Detection {
         this.endTime = endTime;
     }
 
-    private String formatTime(long micros) {
+    public void setSpecies(String species) {
+        this.species = species;
+    }
+
+    public void setConfidence(double confidence) {
+        this.confidence = confidence;
+    }
+
+    public void setStartTime(double startTime) {
+        this.startTime = startTime;
+    }
+
+    public String formatTime(long micros) {
         long secs = micros / 1000000;
         return String.format("%02d:%02d", secs / 60, secs % 60);
     }

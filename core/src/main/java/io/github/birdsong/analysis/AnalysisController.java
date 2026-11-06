@@ -1,6 +1,7 @@
 package io.github.birdsong.analysis;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.async.AsyncExecutor;
 import com.badlogic.gdx.utils.async.AsyncTask;
 import io.github.birdsong.audio.*;
@@ -46,7 +47,7 @@ public class AnalysisController {
         }
     }
 
-    public void analyse() {
+    public void analyse(Table container, final Runnable onClick) {
         if (!analysed) {
             analysed = true;
         } else {
@@ -72,7 +73,7 @@ public class AnalysisController {
                     predictions = network.forward(window);
                     confidence = predictions[network.mostConfidence(predictions)];
 
-                    label = network.getLabels()[network.mostConfidence(network.forward(window))];
+                    label = network.getLabels()[network.mostConfidence(predictions)];
                     if (!label.equals("Noise")) {
                         if (confidence > 0.99) {
                             windowStartPos = windowLength * i;
@@ -88,16 +89,15 @@ public class AnalysisController {
                     public void run() {
                         detections = localDetections;
 
-                        for (Detection d : detections) {
-                            System.out.println(d);
-                        }
-
-                        System.out.println();
-                        groupDetections();
+                        smoothDetections();
+                        detections = groupDetections();
 
                         for (Detection d : detections) {
                             System.out.println(d);
+                            container.add(new DetectionCard(d, onClick)).left().row();
                         }
+
+                        analysed = true;
                     }
                 });
 
@@ -114,23 +114,53 @@ public class AnalysisController {
         return spectrogram;
     }
 
-    private void groupDetections() {
+    private List<Detection> groupDetections() {
         List<Detection> grouped = new ArrayList<>();
-        int detectionIdx = -1;
 
-        for (Detection d : detections) {
-            if (detectionIdx < 0) {
-                grouped.add(d);
-                detectionIdx++;
-            } else {
-                if (d.getStartTime() <= grouped.get(detectionIdx).getEndTime()) {
-                    grouped.get(detectionIdx).setEndTime(d.getEndTime());
+        if (detections.size() <= 1) {
+            return detections;
+        }
+
+        int currIdx = 0;
+        int acc = 1;
+        grouped.add(detections.get(0));
+
+        for (int i = 1; i < detections.size(); i++) {
+            if (grouped.get(currIdx).getSpecies().equals(detections.get(i).getSpecies())) {
+                if (Math.abs(grouped.get(currIdx).getEndTime() - detections.get(i).getStartTime()) < 2000000) {
+                    grouped.get(currIdx).setEndTime(detections.get(i).getEndTime());
+                    grouped.get(currIdx).setConfidence((grouped.get(currIdx).getConfidence() * acc + detections.get(i).getConfidence()) / (acc + 1));
+                    acc++;
                 } else {
-                    detectionIdx++;
-                    grouped.add(d);
+                    grouped.add(detections.get(i));
+                    acc = 1;
+                    currIdx++;
                 }
+            } else {
+                grouped.add(detections.get(i));
+                acc = 1;
+                currIdx++;
             }
         }
-        detections = grouped;
+
+        return grouped;
+    }
+
+    private void smoothDetections() {
+        List<Detection> smoothed = new ArrayList<>();
+
+        if (detections.size() <= 1) {
+            return;
+        }
+
+        for (int i = 1; i < detections.size(); i++) {
+           if (i + 1 < detections.size()) {
+               if (detections.get(i - 1).getSpecies().equals(detections.get(i + 1).getSpecies())) {
+                   if (detections.get(i - 1).getEndTime() == detections.get(i).getStartTime()) {
+                       detections.get(i).setSpecies(detections.get(i + 1).getSpecies());
+                   }
+               }
+           }
+        }
     }
 }
