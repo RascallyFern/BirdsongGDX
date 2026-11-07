@@ -6,7 +6,7 @@ public class Functions {
 
         double[] grad = new double[p.length];
 
-        //simplified with sigmoid as final layer
+        //simplified with sigmoid/softmax as final layer
         for (int i = 0; i < p.length; i++) {
             double actual = (y == i ? 1 : 0);
             grad[i] = p[i] - actual;
@@ -14,5 +14,4 @@ public class Functions {
 
         return grad;
     }
-
 }

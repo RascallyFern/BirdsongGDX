@@ -12,8 +12,6 @@ public class MaxPoolLayer {
         initVars(inX, inY, channels, filterSize, stride);
     }
 
-    public MaxPoolLayer() {}
-
     private void initVars(int inX, int inY, int channels, int filterSize, int stride) {
         this.inX = inX;
         this.inY = inY;
@@ -104,23 +102,6 @@ public class MaxPoolLayer {
         dos.writeInt(channels);
         dos.writeInt(filterSize);
         dos.writeInt(stride);
-    }
-
-    public void importFromCSV(BufferedReader br) throws IOException {
-        String line = br.readLine();
-        String[] split = line.split(",");
-        int[] vars = new int[split.length - 1];
-
-        if (!split[0].equals("pool")) {
-            System.out.println("Import does not match pooling layer!");
-            return;
-        }
-
-        for (int i = 0; i < split.length - 1; i++) {
-            vars[i] = Integer.parseInt(split[i+1]);
-        }
-
-        initVars(vars[0], vars[1], vars[2], vars[3], vars[4]);
     }
 
     public void importFromDat(DataInputStream dis) throws IOException {

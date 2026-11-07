@@ -21,8 +21,6 @@ public class ConvolutionLayer {
         initLayer(filterNum);
     }
 
-    public ConvolutionLayer() {}
-
     private void initVars(int inX, int inY, int channels, int filterNum, int filterSize, int stride) {
         this.filterSize = filterSize;
         this.inX = inX;
@@ -180,41 +178,6 @@ public class ConvolutionLayer {
 
         for (int i = 0; i < bias.length; i++) {
             dos.writeDouble(bias[i]);
-        }
-    }
-
-    public void importFromCSV(BufferedReader br) throws IOException {
-        String line = br.readLine();
-        String[] split = line.split(",");
-        String[] filterRow;
-        int[] vars = new int[split.length - 1];
-
-        if (!split[0].equals("conv")) {
-            System.out.println("Import does not match convolution layer!");
-            return;
-        }
-
-        for (int i = 0; i < split.length - 1; i++) {
-            vars[i] = Integer.parseInt(split[i+1]);
-        }
-
-        //int inputSize, int channels, int filterNum, int filterSize, int stride
-        initVars(vars[0], vars[1], vars[2], vars[3], vars[4], vars[5]);
-
-        for (int f = 0; f < filterNum; f++) {
-            for (int c = 0; c < channels; c++) {
-                for (int row = 0; row < filterSize; row++) {
-                    filterRow = br.readLine().split(",");
-                    for (int w = 0; w < filterSize; w++) {
-                        filters[f][c][row][w] = Double.parseDouble(filterRow[w]);
-                    }
-                }
-            }
-        }
-
-        String[] biasImport = br.readLine().split(",");
-        for (int i = 0; i < bias.length; i++) {
-            bias[i] = Double.parseDouble(biasImport[i]);
         }
     }
 

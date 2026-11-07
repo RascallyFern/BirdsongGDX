@@ -1,7 +1,5 @@
 package io.github.birdsong.cnn.layers.activation;
 
-import java.util.Arrays;
-
 public class ReLU1D {
 
     private double[] dInput;

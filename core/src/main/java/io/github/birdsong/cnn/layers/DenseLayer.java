@@ -30,8 +30,6 @@ public class DenseLayer {
         }
     }
 
-    public DenseLayer() {}
-
     private void initVars(int inputSize, int outputSize) {
         input = new double[inputSize];
         output = new double[outputSize];
@@ -156,36 +154,6 @@ public class DenseLayer {
 
         for (int i = 0; i < bias.length; i++) {
             dos.writeDouble(bias[i]);
-        }
-    }
-
-    public void importFromCSV(BufferedReader br) throws IOException {
-        String line = br.readLine();
-        String[] split = line.split(",");
-        String[] filterRow;
-        int[] vars = new int[split.length - 1];
-
-        if (!split[0].equals("dense")) {
-            System.out.println("Import does not match dense layer!");
-            return;
-        }
-
-        for (int i = 0; i < split.length - 1; i++) {
-            vars[i] = Integer.parseInt(split[i+1]);
-        }
-
-        initVars(vars[0], vars[1]);
-
-        for (int out = 0; out < outputSize; out++) {
-            filterRow = br.readLine().split(",");
-            for (int w = 0; w < filterRow.length; w++) {
-                weights[out][w] = Double.parseDouble(filterRow[w]);
-            }
-        }
-
-        String[] biasImport = br.readLine().split(",");
-        for (int i = 0; i < bias.length; i++) {
-            bias[i] = Double.parseDouble(biasImport[i]);
         }
     }
 

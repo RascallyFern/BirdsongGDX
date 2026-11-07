@@ -90,7 +90,7 @@ public class HomeScreen implements Screen {
         Table detections = createDetectionsUI();
 
         root.add(menuBar).growX().left().top().row();
-        root.add(widget).growX().height(300).left().top().row();
+        root.add(widget).growX().height(260).left().top().row();
         root.add(controls).growX().pad(12).row();
         root.add(detections).grow();
         stage.addActor(root);
@@ -134,6 +134,7 @@ public class HomeScreen implements Screen {
                 }
 
                 status.setText("Analysing...");
+                displayDetections(new ArrayList<>());
 
                 Thread thread = new Thread(() -> {
 

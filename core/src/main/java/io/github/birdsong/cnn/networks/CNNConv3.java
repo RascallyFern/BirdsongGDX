@@ -22,8 +22,8 @@ public class CNNConv3 {
     private double initialLearningRate, learningRate, decayRate;
     private int inX, inY;
     private String exportName;
-    private String[] labels;
     private File importFile, exportFile;
+    private String[] labels;
 
     public CNNConv3(int inX, int inY) {
         this.inX = inX;
@@ -97,17 +97,27 @@ public class CNNConv3 {
     public void test() {
         int correct = 0;
         double[] predictions;
+        int[] correctPredictions = new int[testLabels.length];
+        int[] errors = new int[testLabels.length];
 
         for (int i = 0; i < testImages.length; i++) {
             predictions = forward(testImages[i]);
-            if (mostConfidence(predictions) == testLabels[i]) {
+            int mostConfidence = mostConfidence(predictions);
+            if (mostConfidence == testLabels[i]) {
                 correct++;
+                correctPredictions[mostConfidence]++;
+            } else {
+                errors[mostConfidence]++;
             }
         }
 
         double acc = (double) correct / testImages.length;
 
         System.out.println("Initial Accuracy: " + acc);
+
+        for (int i = 0; i < testLabels.length; i++) {
+            System.out.println(labels[i] + ": " + errors[i] + " wrong out of " + (errors[i] + correctPredictions[i]) + " (" + (errors[i] * 100 / (errors[i] + correctPredictions[i])) + "%)");
+        }
     }
 
     public void train(int epochs) {
@@ -125,7 +135,7 @@ public class CNNConv3 {
         for (int e = 0; e < epochs; e++) {
 
             learningRate = initialLearningRate * Math.pow(decayRate, e);
-            System.out.println("\nEpoch " + (e+1) + " (Learning Rate: " + learningRate + "): ");
+            System.out.println("\nEpoch " + (e + 1) + " (Learning Rate: " + learningRate + "): ");
             test();
 
             long epochStartTime = System.nanoTime();
@@ -148,10 +158,11 @@ public class CNNConv3 {
                 predictions = forward(trainImages[i]);
                 backward(Functions.ceGradients(predictions, trainLabels[i]));
             }
+
             System.out.println();
 
             long epochEndTime = System.nanoTime();
-            double epochTime = (epochEndTime - epochStartTime) / 60000000000.0; //mins
+            double epochTime = (epochEndTime - epochStartTime) / 60000000000.0;
             epochTimeTotal += (epochEndTime - epochStartTime);
             System.out.printf("Epoch %d completed in %.2f mins.\n", e + 1, epochTime);
         }
@@ -189,24 +200,7 @@ public class CNNConv3 {
         this.testLabels = testLabels;
     }
 
-    public void exportToCSV() throws IOException {
-        exportFile = new File(exportName + ".csv");
-
-        if (!exportFile.createNewFile()) {
-            System.out.printf("\n\nFile with name \"%s\" already exists! Overwriting file.", exportFile + ".csv");
-        }
-
-        BufferedWriter bw = new BufferedWriter(new FileWriter(exportFile));
-        c1.exportToCSV(bw);
-        p1.exportToCSV(bw);
-        c2.exportToCSV(bw);
-        p2.exportToCSV(bw);
-        c3.exportToCSV(bw);
-        p3.exportToCSV(bw);
-        d1.exportToCSV(bw);
-        d2.exportToCSV(bw);
-        bw.close();
-    }
+    public String[] getLabels() { return labels; }
 
     public void exportToDat(String exportName, String[] labels) throws IOException {
         this.exportName = exportName;
@@ -236,20 +230,6 @@ public class CNNConv3 {
         }
 
         dos.close();
-    }
-
-    public void importFromCSV(String importDir) throws IOException {
-        importFile = new File(importDir);
-
-        BufferedReader br = new BufferedReader(new FileReader(importFile));
-        c1.importFromCSV(br);
-        p1.importFromCSV(br);
-        c2.importFromCSV(br);
-        p2.importFromCSV(br);
-        c3.importFromCSV(br);
-        p3.importFromCSV(br);
-        d1.importFromCSV(br);
-        d2.importFromCSV(br);
     }
 
     public void importFromDat(String importDir) throws IOException {
@@ -287,50 +267,6 @@ public class CNNConv3 {
         dis.close();
     }
 
-    public void forwardCSV(String dir) throws IOException {
-        File csv = new File(dir);
-        String[] line;
-        BufferedReader br = new BufferedReader(new FileReader(csv));
-
-        double[][] image = new double[128][128];
-
-        for (int i = 0; i < image.length; i++) {
-            line = br.readLine().split(",");
-            for (int j = 0; j < image[0].length; j++) {
-                image[i][j] = Double.parseDouble(line[j]);
-            }
-        }
-
-        System.out.println(Arrays.toString(forward(image)));
-    }
-
-    public static double[][] pngToArray(String path) throws IOException {
-
-        BufferedImage image = ImageIO.read(new File(path));
-
-        int width = image.getWidth();
-        int height = image.getHeight();
-
-        double[][] spectrogram = new double[height][width];
-
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-
-                int rgb = image.getRGB(x, y);
-
-                int red = (rgb >> 16) & 0xFF;
-                int green = (rgb >> 8) & 0xFF;
-                int blue = rgb & 0xFF;
-
-                double value = (red + green + blue) / (3.0 * 255.0);
-
-                spectrogram[height - y - 1][x] = value;
-            }
-        }
-
-        return spectrogram;
-    }
-
     private double[][] flipSpectrogram(double[][] spectrogram) {
         double[][] temp = new double[spectrogram.length][spectrogram[0].length];
 
@@ -343,7 +279,4 @@ public class CNNConv3 {
         return temp;
     }
 
-    public String[] getLabels() {
-        return labels;
-    }
 }
