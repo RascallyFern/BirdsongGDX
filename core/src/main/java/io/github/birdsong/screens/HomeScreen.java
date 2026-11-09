@@ -134,7 +134,7 @@ public class HomeScreen implements Screen {
                 }
 
                 status.setText("Analysing...");
-                displayDetections(new ArrayList<>());
+                clearDetections();
 
                 Thread thread = new Thread(() -> {
 
@@ -262,6 +262,7 @@ public class HomeScreen implements Screen {
 
     private void loadPath(String path) {
         if (path.isBlank()) {
+            status.setText("Please enter a valid directory");
             return;
         }
 
@@ -269,6 +270,12 @@ public class HomeScreen implements Screen {
 
         if (!file.exists()) {
             System.err.println("Path does not exist: " + path);
+            status.setText("Path does not exist: " + path);
+            return;
+        }
+
+        if (!file.getName().toLowerCase().contains(".wav")) {
+            status.setText("Unsupported file type");
             return;
         }
 
@@ -280,9 +287,18 @@ public class HomeScreen implements Screen {
                 return;
             }
 
-            loadRecording(files[0]);
+            try {
+                loadRecording(files[0]);
+            } catch (Error e) {
+                status.setText("Error loading file");
+            }
+
         } else {
-            loadRecording(file);
+            try {
+                loadRecording(file);
+            } catch (Error e) {
+                status.setText("Error loading file");
+            }
         }
     }
 
@@ -376,7 +392,7 @@ public class HomeScreen implements Screen {
         });
     }
 
-    private void displayDetections(List<Detection> detections) {
+    private void clearDetections() {
         detectionsContainer.clearChildren();
         selectedDetection = null;
 
@@ -385,6 +401,31 @@ public class HomeScreen implements Screen {
         selectedStart.setText("Start: --");
         selectedEnd.setText("End: --");
         selectedDur.setText("Duration: --");
+    }
+
+    private void displayDetections(List<Detection> detections) {
+        clearDetections();
+
+        if (detections.isEmpty()) {
+            Thread worker = new Thread(() -> {
+                String path = String.valueOf(status.getText());
+
+                status.setText("No detections were found");
+
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+                status.setText(path);
+
+            });
+
+            worker.start();
+
+            return;
+        }
 
         for (Detection detection : detections) {
             DetectionCard card = new DetectionCard(detection, skin, () -> selectDetection(detection));

@@ -42,15 +42,15 @@ public class DetectionCard extends Table {
         });
     }
 
-    private boolean isWithinCard(Actor actor) {
-        while (actor != null) {
-            if (actor == this) {
-                return true;
-            }
-
-            actor = actor.getParent();
-        }
-
-        return false;
-    }
+//    private boolean isWithinCard(Actor actor) {
+//        while (actor != null) {
+//            if (actor == this) {
+//                return true;
+//            }
+//
+//            actor = actor.getParent();
+//        }
+//
+//        return false;
+//    }
 }

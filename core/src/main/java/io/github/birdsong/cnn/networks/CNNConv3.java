@@ -1,6 +1,6 @@
 package io.github.birdsong.cnn.networks;
 
-import io.github.birdsong.cnn.*;
+
 import io.github.birdsong.cnn.layers.*;
 import io.github.birdsong.cnn.layers.activation.*;
 
@@ -156,7 +156,7 @@ public class CNNConv3 {
                     System.out.print("\rTraining Progress: " + bar);
                 }
                 predictions = forward(trainImages[i]);
-                backward(Functions.ceGradients(predictions, trainLabels[i]));
+                backward(ceGradients(predictions, trainLabels[i]));
             }
 
             System.out.println();
@@ -265,6 +265,20 @@ public class CNNConv3 {
         }
 
         dis.close();
+    }
+
+    public static double[] ceGradients(double[] p, double y) {
+        // p - predictions, y - actual labels
+
+        double[] grad = new double[p.length];
+
+        //simplified with sigmoid/softmax as final layer
+        for (int i = 0; i < p.length; i++) {
+            double actual = (y == i ? 1 : 0);
+            grad[i] = p[i] - actual;
+        }
+
+        return grad;
     }
 
     private double[][] flipSpectrogram(double[][] spectrogram) {
