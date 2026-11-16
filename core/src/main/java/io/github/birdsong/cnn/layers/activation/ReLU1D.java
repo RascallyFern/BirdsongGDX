@@ -11,7 +11,6 @@ public class ReLU1D {
         size = input.length;
 
         output = new double[size];
-        dInput = new double[size];
 
         for (int i = 0; i < size; i++) {
             output[i] = (input[i] > 0 ? input[i] : 0);
@@ -21,6 +20,8 @@ public class ReLU1D {
     }
 
     public double[] backwardPass(double[] dOutput) {
+        dInput = new double[size];
+
         for (int i = 0; i < size; i++) {
             dInput[i] = (output[i] > 0 ? dOutput[i] : 0);
         }

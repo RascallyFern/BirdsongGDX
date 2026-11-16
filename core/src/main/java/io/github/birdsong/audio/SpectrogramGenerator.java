@@ -10,7 +10,7 @@ public class SpectrogramGenerator {
     private final int melBands = 128;
 
     private WavReader wav;
-    private double[] samples, spectrum;
+    private double[] spectrum;
     private double[][] image;
     private int sampleRate;
     private int[] melBins;
@@ -20,7 +20,6 @@ public class SpectrogramGenerator {
     }
 
     public double[][] generateSpectrogram(double[] samples, int sampleRate) {
-        this.samples = samples;
         this.sampleRate = sampleRate;
         buildMelFilterbank();
 

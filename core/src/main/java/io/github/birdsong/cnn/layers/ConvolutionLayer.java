@@ -18,7 +18,7 @@ public class ConvolutionLayer {
 
     public ConvolutionLayer(int inX, int inY, int channels, int filterNum, int filterSize, int stride) {
         initVars(inX, inY, channels, filterNum, filterSize, stride);
-        initLayer(filterNum);
+        initWeights();
     }
 
     private void initVars(int inX, int inY, int channels, int filterNum, int filterSize, int stride) {
@@ -31,16 +31,16 @@ public class ConvolutionLayer {
         this.outX = ((inX - filterSize) / stride) + 1;
         this.outY = ((inY - filterSize) / stride) + 1;
         output = new double[filterNum][outY][outX];
-        filters = new double[filterNum][channels][filterSize][filterSize];
-
         bias = new double[filterNum];
         Arrays.fill(bias, 0.0);
     }
 
-    private void initLayer(int filterNum) {
+    private void initWeights() {
         // He init for weights
         double fanIn = channels * filterSize * filterSize;
         double stdv = Math.sqrt(2.0 / fanIn);
+
+        filters = new double[filterNum][channels][filterSize][filterSize];
 
         for (int filter = 0; filter < filters.length; filter++) {
             for (int z = 0; z < channels; z++) {

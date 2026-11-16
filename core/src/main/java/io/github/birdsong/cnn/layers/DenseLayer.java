@@ -7,20 +7,21 @@ import java.util.Random;
 public class DenseLayer {
 
     private double[] input, output, bias;
-    private double[] dInput, dOutput;
+    private double[] dInput;
     private double[][] weights;
     private int inputSize, outputSize;
     private int inChannels, inHeight, inWidth;
-    private double learningRate;
 
     private Random r = new Random();
 
     public DenseLayer(int inputSize, int outputSize) {
         initVars(inputSize, outputSize);
+        initWeights();
+    }
 
-        Arrays.fill(bias, 0.0);
-
+    private void initWeights() {
         // Xavier init for weights
+        weights = new double[outputSize][inputSize];
         double limit = Math.sqrt(6.0 / (inputSize + outputSize));
 
         for (int i = 0; i < outputSize; i++) {
@@ -33,21 +34,20 @@ public class DenseLayer {
     private void initVars(int inputSize, int outputSize) {
         input = new double[inputSize];
         output = new double[outputSize];
-        weights = new double[outputSize][inputSize];
         bias = new double[outputSize];
 
         this.inputSize = inputSize;
         this.outputSize = outputSize;
-        learningRate = 0.001;
+        Arrays.fill(bias, 0.0);
     }
 
     public double[] forwardPass(double[] input) {
         this.input = input;
 
-        for (int i = 0; i < output.length; i++) {
+        for (int i = 0; i < outputSize; i++) {
             double sum = 0;
 
-            for (int j = 0; j < input.length; j++) {
+            for (int j = 0; j < inputSize; j++) {
                 sum += weights[i][j] * input[j];
             }
 
@@ -58,20 +58,21 @@ public class DenseLayer {
     }
 
     public double[] forwardPass(double[][][] input) {
-        forwardPass(flatten(input));
         inChannels = input.length;
         inHeight = input[0].length;
         inWidth = input[0][0].length;
+
+        forwardPass(flatten(input));
         return output;
     }
 
     private double[] flatten(double[][][] input) {
-        double[] flattened = new double[input.length * input[0].length * input[0][0].length];
+        double[] flattened = new double[inChannels * inHeight * inWidth];
 
-        for (int i = 0; i < input.length; i++) {
-            for (int j = 0; j < input[i].length; j++) {
-                for (int k = 0; k < input[i][j].length; k++) {
-                    flattened[k + (j * input[0][0].length) + (i * input[0].length * input[0][0].length)] = input[i][j][k];
+        for (int i = 0; i < inChannels; i++) {
+            for (int j = 0; j < inHeight; j++) {
+                for (int k = 0; k < inWidth; k++) {
+                    flattened[k + (j * inWidth) + (i * inHeight * inWidth)] = input[i][j][k];
                 }
             }
         }
@@ -101,7 +102,6 @@ public class DenseLayer {
 
     public double[] backwardPass1D(double[] dOutput, double learningRate) {
         dInput = new double[inputSize];
-        this.dOutput = dOutput;
 
         //w.r.t bias
         for (int i = 0; i < outputSize; i++) {

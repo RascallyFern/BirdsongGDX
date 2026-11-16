@@ -5,7 +5,7 @@ import java.util.Arrays;
 
 public class MaxPoolLayer {
     private double[][][] input, dInput;
-    private double[][][] output, dOutput;
+    private double[][][] output;
     private int inX, inY, channels, filterSize, stride, outX, outY;
 
     public MaxPoolLayer(int inX, int inY, int channels, int filterSize, int stride) {
@@ -20,6 +20,8 @@ public class MaxPoolLayer {
         this.stride = (stride > 0 ? stride : filterSize); // e.g. if -1 given then matches filter size
         this.outX = ((inX - filterSize) / this.stride) + 1;
         this.outY = ((inY - filterSize) / this.stride) + 1;
+
+        dInput = new double[channels][inY][inX];
         output = new double[channels][outY][outX];
     }
 
@@ -47,9 +49,6 @@ public class MaxPoolLayer {
     }
 
     public double[][][] backwardPass(double[][][] dOutput) {
-        this.dOutput = dOutput;
-        dInput = new double[channels][inY][inX];
-
         for (int c = 0; c < channels; c++) {
             for (int y = 0; (y/stride) < outY; y += stride) {
                 for (int x = 0; (x/stride) < outX; x += stride) {

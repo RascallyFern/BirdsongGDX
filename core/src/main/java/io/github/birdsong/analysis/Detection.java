@@ -2,12 +2,14 @@ package io.github.birdsong.analysis;
 
 public class Detection {
     private String species;
+    private String sciName;
     private double confidence;
     private double startTime;
     private double endTime;
 
-    public Detection(String species, double confidence, double startTime, double endTime) {
+    public Detection(String species, String sciName, double confidence, double startTime, double endTime) {
         this.species = species;
+        this.sciName = sciName;
         this.confidence = confidence;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -32,6 +34,8 @@ public class Detection {
     public double getDuration() {
         return endTime - startTime;
     }
+
+    public String getSciName() { return sciName; }
 
     public void setEndTime(double endTime) {
         this.endTime = endTime;

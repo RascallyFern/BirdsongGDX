@@ -76,7 +76,7 @@ public class AnalysisController {
                     if (!label.equals("Noise") && confidence > 0.99) {
                         double start = windowLength * i;
 
-                        localDetections.add(new Detection(label, confidence, start, start + windowLength));
+                        localDetections.add(new Detection(label, network.getSciNameLabels()[bestIdx], confidence, start, start + windowLength));
                     }
                 }
 

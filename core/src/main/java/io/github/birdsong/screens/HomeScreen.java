@@ -12,8 +12,8 @@ import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import io.github.birdsong.BirdsongApp;
 import io.github.birdsong.analysis.AnalysisController;
@@ -30,7 +30,7 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class HomeScreen implements Screen {
@@ -54,6 +54,9 @@ public class HomeScreen implements Screen {
     private Detection selectedDetection;
     private Texture panelTexture;
     private TextureRegionDrawable panelBackground;
+    private List<String> networkLabels;
+    private Image[] birdImages;
+    private Image selectedImg;
 
     public HomeScreen(BirdsongApp app) {
         this.app = app;
@@ -65,15 +68,27 @@ public class HomeScreen implements Screen {
         status = new Label("No recording loaded", skin);
         dirField = new TextField("", skin);
 
-        buildUI();
         initialiseNetwork();
 
+        networkLabels = Arrays.asList(network.getLabels());
+        birdImages = new Image[networkLabels.size()];
+
+        for (int i = 0; i < birdImages.length - 1; i++) {
+            birdImages[i] = new Image(new Texture(Gdx.files.internal("images/" + networkLabels.get(i) + ".jpg")));
+        }
+
+        birdImages[birdImages.length - 1] = new Image(createSolidColour(BirdsongSkin.PANEL));
+
+        selectedImg = birdImages[birdImages.length - 1];
+        buildUI();
+
+        System.out.println(networkLabels);
         Gdx.input.setInputProcessor(stage);
     }
 
     private void initialiseNetwork() {
         try {
-            network.importFromDat("../assets/birdsExportWithLabels.dat");
+            network.importFromDat("../assets/20birdsSciNameAndLabel.dat");
         } catch (IOException e) {
             System.err.println("Could not initialise network: " + e);
         }
@@ -203,6 +218,7 @@ public class HomeScreen implements Screen {
         detailsBox.add(selectedStart).left().pad(16).row();
         detailsBox.add(selectedEnd).left().pad(16).row();
         detailsBox.add(selectedDur).left().pad(16).row();
+        detailsBox.add(selectedImg).left().pad(16).width(240).height(200).row();
 
         right.add(infoHeading).left().growX().padBottom(12).row();
         right.add(detailsBox).left().growX().top();
@@ -401,6 +417,7 @@ public class HomeScreen implements Screen {
         selectedStart.setText("Start: --");
         selectedEnd.setText("End: --");
         selectedDur.setText("Duration: --");
+        selectedImg.setDrawable(birdImages[birdImages.length - 1].getDrawable());
     }
 
     private void displayDetections(List<Detection> detections) {
@@ -448,6 +465,8 @@ public class HomeScreen implements Screen {
         selectedStart.setText("Start: " + formatDetectionTime(detection.getStartTime()));
         selectedEnd.setText("End: " + formatDetectionTime(detection.getEndTime()));
         selectedDur.setText("Duration: " + formatDetectionTime(detection.getDuration()));
+
+        selectedImg.setDrawable(birdImages[networkLabels.indexOf(detection.getSpecies())].getDrawable());
     }
 
     public Texture createSolidColour(Color colour) {

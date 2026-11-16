@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -17,8 +18,10 @@ public class DetectionCard extends Table {
         pad(12, 16, 12, 16);
 
         add(new Label(detection.getSpecies(), skin)).growX().left().row();
+        add(new Label("(" + detection.getSciName() + ")", skin)).growX().left().row();
         add(new Label(String.format("Confidence: %.2f", detection.getConfidence()), skin)).growX().left().padTop(5).row();
         add(new Label(String.format(detection.formatTime((long) detection.getStartTime()) + " - " + detection.formatTime((long) detection.getEndTime()), detection.getConfidence()), skin)).growX().left().padTop(3);
+        row();
 
         addListener(new ClickListener() {
             @Override
@@ -41,16 +44,4 @@ public class DetectionCard extends Table {
 //            }
         });
     }
-
-//    private boolean isWithinCard(Actor actor) {
-//        while (actor != null) {
-//            if (actor == this) {
-//                return true;
-//            }
-//
-//            actor = actor.getParent();
-//        }
-//
-//        return false;
-//    }
 }

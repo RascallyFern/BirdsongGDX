@@ -23,7 +23,7 @@ public class CNNConv3 {
     private int inX, inY;
     private String exportName;
     private File importFile, exportFile;
-    private String[] labels;
+    private String[] labels, sciNameLabels;
 
     public CNNConv3(int inX, int inY) {
         this.inX = inX;
@@ -195,6 +195,11 @@ public class CNNConv3 {
         this.testImages = testImages;
     }
 
+    public void setLabels(String[] labels, String[] sciNameLabels) {
+        this.labels = labels;
+        this.sciNameLabels = sciNameLabels;
+    }
+
     public void setLabels(int[] trainLabels, int[] testLabels) {
         this.trainLabels = trainLabels;
         this.testLabels = testLabels;
@@ -202,12 +207,14 @@ public class CNNConv3 {
 
     public String[] getLabels() { return labels; }
 
-    public void exportToDat(String exportName, String[] labels) throws IOException {
+    public String[] getSciNameLabels() { return sciNameLabels; }
+
+    public void exportToDat(String exportName, String[] labels, String[] sciNameLabels) throws IOException {
         this.exportName = exportName;
-        exportToDat(labels);
+        exportToDat(labels, sciNameLabels);
     }
 
-    public void exportToDat(String[] labels) throws IOException {
+    public void exportToDat(String[] labels, String[] sciNameLabels) throws IOException {
         exportFile = new File(exportName + ".dat");
 
         DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(exportFile)));
@@ -225,8 +232,9 @@ public class CNNConv3 {
 
         dos.writeInt(labels.length);
 
-        for (String label : labels) {
-            dos.writeUTF(label);
+        for (int i = 0; i < labels.length; i++) {
+            dos.writeUTF(labels[i]);
+            dos.writeUTF(sciNameLabels[i]);
         }
 
         dos.close();
@@ -242,6 +250,7 @@ public class CNNConv3 {
         DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(importFile)));
 
         String networkType = dis.readUTF();
+        System.out.println(networkType);
 
         if (!networkType.equals("Conv3")) {
             System.out.println("Import does not match the Conv3 model!");
@@ -259,9 +268,11 @@ public class CNNConv3 {
 
         int labelCount = dis.readInt();
         labels = new String[labelCount];
+        sciNameLabels = new String[labelCount];
 
         for (int i = 0; i < labelCount; i++) {
             labels[i] = dis.readUTF();
+            sciNameLabels[i] = dis.readUTF();
         }
 
         dis.close();
